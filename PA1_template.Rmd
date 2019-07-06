@@ -1,25 +1,101 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "My first project"
+author: "Wang"
+date: "05/07/2019"
+output: html_document
+keep_md: yes
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
+## R Markdown
 
+The data for this assignment can be downloaded from the course web site:
 
+Dataset: Activity monitoring data [52K]
+The variables included in this dataset are:
 
-## What is mean total number of steps taken per day?
+steps: Number of steps taking in a 5-minute interval (missing values are coded as \color{red}{\verb|NA|}NA)
+date: The date on which the measurement was taken in YYYY-MM-DD format
+interval: Identifier for the 5-minute interval in which measurement was taken.
 
+1. Getting and reading the data
 
+```{r}
+if (!"file.zip" %in% dir()){
+url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+download.file(url, destfile = "file.zip")
+unzip("file.zip", exdir = "data")
+}
+filepath <- paste(getwd(), "data", dir("data")[1], sep = "/")
+r <- read.csv(filepath)
+```
 
-## What is the average daily activity pattern?
+2. Histogram of the total number of steps taken each day
 
+```{r}
+agg <- with(r, aggregate(steps~date, FUN = sum))
+hist(agg$steps, breaks = 20, col = "green", main = "Total steps per day(NAs ignored)", xlab = "Step")
+```
 
+3. Mean and median number of steps taken each day
 
-## Imputing missing values
+```{r}
+data.frame(mean = mean(agg$steps), median = median(agg$steps))
+```
 
+4. Time series plot of the average number of steps taken
 
+```{r}
+agg2 <- with(r, aggregate(steps~interval, FUN = mean, rm.na = T))
+library(ggplot2)
+gg <- ggplot(agg2, aes(interval, steps)) + geom_line(col = "brown") +
+    labs(y = "Time in a day", title = "Average steps per day")
+gg
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+5. The 5-minute interval that, on average, contains the maximum number of steps
+
+```{r}
+agg2[which(agg2$steps == max(agg2$steps, na.rm = T)),]
+```
+
+6. Code to describe and show a strategy for imputing missing data
+## Replace the missing values with the median of the non-missing values which is 0
+```{r}
+r1 <- r
+r1[is.na(r1$steps),]$steps <- median(r1[!is.na(r1$steps),]$steps)
+```
+
+7. Histogram of the total number of steps taken each day after missing values are imputed
+
+```{r}
+agg3 <- with(r1, aggregate(steps~date, FUN = sum))
+hist(agg3$steps, breaks = 20, col = "green", main = "Total steps per day(0 for NAs)", xlab = "Step")
+```
+
+8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+```{r}
+r2 <- r
+r2$date <- as.POSIXct(r2$date, format = "%Y-%m-%d")
+library(dplyr)
+r2.0 <- mutate(r2, "Day_in_a_week" = weekdays(r2$date))
+rweekdays <- filter(r2.0, Day_in_a_week=="Monday"|Day_in_a_week=="Tuesday"|Day_in_a_week=="Wednesday"|Day_in_a_week =="Thursday"|Day_in_a_week == "Friday")
+rweekends <- filter(r2.0, Day_in_a_week == "Saterday" | Day_in_a_week == "Sunday")
+##(1)
+agg4 <- with(rweekdays, aggregate(steps~interval, FUN = mean))
+##(2)
+agg5 <- with(rweekends, aggregate(steps~interval, FUN = mean))
+par(mfrow = c(1,2))
+with(agg4, plot(steps~interval, type = "l", main = "Weekday", ylim = c(0, 250)))                              
+with(agg5, plot(steps~interval, type = "l", main = "Weekend", ylim = c(0, 250)))
+```
+
+                                    
+                                    
+                                    
+                                    
+
